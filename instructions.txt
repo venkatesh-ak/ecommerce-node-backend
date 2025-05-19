@@ -6,6 +6,8 @@
 7. Environment variables
 8. Route definitions
 9. User Signup System with Node.js and Prisma ORM
+10. Node.js Login System with Prisma ORM & JWT | Secure User Authentication Tutorial
+11. Advanced Error Handling in Node.js with Prisma ORM | Mastering Subclasses of Error Class
 ================================================(MAY 10)
 2. project setup :
 
@@ -224,3 +226,15 @@ export const errorMiddleware = (error: httpExceptions, req, res, next) =>{
 index.ts
 app.use(errorMiddleware);
 ================================================(MAY 17)
+12. Effortless Data Validation in Node.js with Zod & Prisma ORM | Mastering Form Validation
+
+npm i zod 
+
+schema/users.ts
+import { string, z } from 'zod';
+export const SignUpSchema = z.object({
+    name: z.string(),
+    email: z.string().email(),
+    password: z.string().min(6)
+})
+
