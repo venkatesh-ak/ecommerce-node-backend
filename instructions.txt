@@ -8,6 +8,7 @@
 9. User Signup System with Node.js and Prisma ORM
 10. Node.js Login System with Prisma ORM & JWT | Secure User Authentication Tutorial
 11. Advanced Error Handling in Node.js with Prisma ORM | Mastering Subclasses of Error Class
+12. Effortless Data Validation in Node.js with Zod & Prisma ORM | Mastering Form Validation
 ================================================(MAY 10)
 2. project setup :
 

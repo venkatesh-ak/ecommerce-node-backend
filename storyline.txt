@@ -1,0 +1,38 @@
+Got it! Let’s extend the **Tech City Story** to include your new steps, weaving them naturally so it stays easy and fun to remember:
+
+---
+
+### 🚀 **“Building a Tech City” – Extended Backend Adventure**
+
+1. **Project Setup**
+   You buy the land and lay the foundation.
+
+2. **Express Setup**
+   Build the city roads to connect everything.
+
+3. **Directory Structure**
+   Design the city layout — districts for routes, controllers, and services.
+
+4. **Initializing Prisma**
+   Hire the clerk (Prisma) to manage citizen data.
+
+5. **Creating User Model**
+   Blueprints for citizens — defining what info to collect.
+
+6. **Environment Variables**
+   Secure vault with city secrets (DB credentials, ports).
+
+7. **Route Definitions**
+   Put up signboards and maps to guide traffic.
+
+8. **User Signup System**
+   Create the registration office so citizens can sign up safely.
+
+9. **User Login System with Prisma & JWT**
+   Build the **city gate** where returning citizens prove their identity with a special token (JWT) — no fake IDs allowed!
+
+10. **Advanced Error Handling with Prisma**
+    You set up **emergency services** that catch any city problems with precision, thanks to expert error subclasses. If something breaks, they respond quickly and clearly.
+
+11. **Effortless Data Validation with Zod & Prisma**
+    Before a citizen registers or passes the city gate, **customs officers** check all forms with a strict checklist (Zod). No invalid or incomplete papers get through!
