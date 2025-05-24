@@ -1,14 +1,35 @@
-2. project setup
-3. express setup
-4. Directory structure: Creating folder structure of app
-5. Initialising Prisma in Express app
-6. Creating User model
-7. Environment variables
-8. Route definitions
-9. User Signup System with Node.js and Prisma ORM
-10. Node.js Login System with Prisma ORM & JWT | Secure User Authentication Tutorial
-11. Advanced Error Handling in Node.js with Prisma ORM | Mastering Subclasses of Error Class
-12. Effortless Data Validation in Node.js with Zod & Prisma ORM | Mastering Form Validation
+2.  project 
+    - project setup
+
+3.  express 
+    - express setup
+
+4.  folders 
+    - Directory structure: Creating folder structure of app
+
+5.  prisma      
+    - Initialising Prisma in Express app
+
+6.  user model  
+    - Creating User model
+    
+7.  env
+    - Environment variables
+
+8.  routes
+    - Route definitions
+
+9.  signup 
+    - User Signup System with Node.js and Prisma ORM
+
+10. login
+    -  Node.js Login System with Prisma ORM & JWT | Secure User Authentication Tutorial
+
+11. exception handler
+    -  Advanced Error Handling in Node.js with Prisma ORM | Mastering Subclasses of Error Class
+
+12. Unprocessable entity
+    -  Effortless Data Validation in Node.js with Zod & Prisma ORM | Mastering Form Validation
 ================================================(MAY 10)
 2. project setup :
 
@@ -205,7 +226,7 @@ export enum ErrorCode {
 }
 
 exceptions/bad-requests.ts
-export Class BadRequestsExceptions{
+export Class BadRequestsExceptions extends httpExceptions{
   constructor(message: string, errorCode: ErrorCode){
     super(message, errorcode, 400, null)
   }
@@ -239,3 +260,14 @@ export const SignUpSchema = z.object({
     password: z.string().min(6)
 })
 
+controllers/auth.ts
+(trycatch for signup)
+export const signup = async (req:Request,res: Response, next: NextFunction)=>{
+    try {
+        SignUpSchema.parse(req.body)
+    ...
+    }
+    catch (err:any) {
+        next(new UnprocessableEntity(err?.issues,'Unprocessable Entity', ErrorCode.UNPROCESSABLE_ENTITY))
+    }
+}
