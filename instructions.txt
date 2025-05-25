@@ -244,7 +244,6 @@ export const errorMiddleware = (error: httpExceptions, req, res, next) =>{
   })
 }
 
-
 index.ts
 app.use(errorMiddleware);
 ================================================(MAY 17)
@@ -263,11 +262,52 @@ export const SignUpSchema = z.object({
 controllers/auth.ts
 (trycatch for signup)
 export const signup = async (req:Request,res: Response, next: NextFunction)=>{
-    try {
-        SignUpSchema.parse(req.body)
+    SignUpSchema.parse(req.body)
     ...
-    }
-    catch (err:any) {
-        next(new UnprocessableEntity(err?.issues,'Unprocessable Entity', ErrorCode.UNPROCESSABLE_ENTITY))
+}
+
+exceptions/validation.ts
+export class UnprocessableEntity extends HttpException{
+    constructor(error: any,message:string, errorCode: number){
+        super(message, errorCode, 422, error)
     }
 }
+
+================================================(MAY 25)
+13. Mastering Generic Error Handling in Node.js & Prisma ORM | Higher Order Functions with Try and Catch
+
+src/error-handler.ts
+export const errorHandler = (method: Function) => {
+    return async (req: Request,res: Response,next: NextFunction) => {
+        try {
+            await method(req,res,next)
+        } catch (error) {
+            let exception: HttpException
+            if(error instanceof HttpException){
+                exception = error
+            }
+            else{
+                exception = new InternalException('something went wrong!',error, ErrorCode.INTERNAL_EXCEPTION)
+            }
+            next(exception)
+        }
+    }
+}
+
+exceptions/internal-exception.ts
+export class InternalException extends HttpException{
+    constructor(message: string , error:any, errorCode:ErrorCode){
+        super(message, errorCode, 500, error)
+    }
+}
+
+exceptions/root.ts
+(add "INTERNAL_EXCEPTION=3001" in enum)
+
+routes/auth.ts
+authRoutes.post('/login',errorHandler(login));
+authRoutes.post('/signup',errorHandler(signup));
+
+================================================(MAY 25)
+14. Using custom error classes in Node.Js and Prisma
+
