@@ -30,6 +30,16 @@
 
 12. Unprocessable entity
     -  Effortless Data Validation in Node.js with Zod & Prisma ORM | Mastering Form Validation
+
+13. Generic error
+    -  Mastering Generic Error Handling in Node.js & Prisma ORM | Higher Order Functions with Try and Catch
+
+14. custom error
+    -  Using custom error classes in Node.Js and Prisma
+
+15. auth middleware and me api
+    -  Node.js Authentication Middleware: Decoding JWT Tokens with Prisma ORM | Secure User Authentication
+
 ================================================(MAY 10)
 2. project setup :
 
@@ -310,4 +320,91 @@ authRoutes.post('/signup',errorHandler(signup));
 
 ================================================(MAY 25)
 14. Using custom error classes in Node.Js and Prisma
+
+
+exceptions/not-found.ts
+export class NotFoundException extends HttpException{
+    constructor(message, errorCode){
+        super(message, errorCode, 404, null)
+    }
+}
+
+controllers/auth.ts
+export const login = async (req:Request,res: Response,next:NextFunction)=>{
+    const {email,password} = req.body;
+
+    let user = await prismaClient.user.findFirst({where : {email} });
+    if(!user){
+        throw new NotFoundException('User not found!',ErrorCode.USER_NOT_FOUND)
+    }
+    if(!compareSync(password,user.password)){
+        throw new BadRequestsException('Invalid password!',ErrorCode.INCORRECT_PASSWORD)
+    }
+    const token = jwt.sign({
+        userId : user.id
+    },JWT_SECRET)
+
+    res.json({user, token});
+}
+================================================(MAY 27)
+15. Node.js Authentication Middleware: Decoding JWT Tokens with Prisma ORM | Secure User Authentication
+
+exceptions/unauthorized.ts
+export class UnauthorizedException extends httpExceptions {
+    constructor(message:string, errorCode:errorCode, errors?:any){
+        super(message, errorCode, 401, errors)
+    }
+}
+
+middlewares/authMiddlewares.ts
+import * as jwt from 'jsonwebtoken';
+const authMiddleware = (req, res, next) =>{
+
+// 1. Extract the token from the header
+const token = req.headers.authorization
+
+// 2. if token is not present, throw unauthorized error
+if(!token){
+    next(new UnauthorizedException('Unauthorized', errorcode.UNAUTHORIZED))
+}
+try{
+    // 3. if token is present, verify the token and extract the payload
+    const payload = jwt.verify(token,JWT_SECRET) as any
+    if(!token){
+        next(new UnauthorizedException('Unauthorized', errorcode.UNAUTHORIZED))
+    }
+
+    // 4. to get the user from the payload
+    const user = await prismaClient.user.findFirst({where: {id: payload.userId }})
+    if(!user){
+        next(new UnauthorizedException('Unauthorized', errorcode.UNAUTHORIZED))
+    }
+
+    // 5. to attach the user to the current request object 
+    req.user = user
+    next()
+}
+catch(error){
+    next(new UnauthorizedException('Unauthorized', errorcode.UNAUTHORIZED))
+}
+}
+export default authMiddleware
+
+src/@types/express/index.d.ts
+import { User } from "@prisma/client";
+declare global{
+    namespace Express {
+        interface Request {
+            user: User
+        }
+    }
+}
+
+controllers/auth.ts
+export const me = async(req: Request, res: Response) => {
+    res.json(req.user)
+}
+
+routes/auth.ts
+authRoutes.get('/me',[authMiddleware],errorHandler(me))
 
