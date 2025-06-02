@@ -127,8 +127,6 @@ PORT = 3000
 
 src/index.ts
 import port from secrets
-
-
 ================================================(MAY 13)
 8. Route definitions
 
@@ -407,4 +405,59 @@ export const me = async(req: Request, res: Response) => {
 
 routes/auth.ts
 authRoutes.get('/me',[authMiddleware],errorHandler(me))
+================================================(June 02)
+16. Adding different role to Users | Node.Js and Prisma ORM
 
+schema.prisma
+enum Role{
+    ADMIN
+    USER
+}
+(add "role Role @default(USER)")
+
+npx prisma migrate dev --name AddRolesToUser
+
+npx prisma studio
+================================================(June 02)
+17. Node.js Admin Middleware: Role-Based Access Control with Prisma ORM | Mastering Authorization
+prisma/schema.prisma
+model Product {
+  id Int @id @default(autoincrement())
+  name String
+  description String @db.Text
+  price Decimal
+  tags String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("products")
+}
+
+npx prisma migrate dev --name CreateProductTable
+
+middlewares/admin.ts
+const adminMiddleware:any = async (req: Request, res: Response, next: NextFunction) => {
+  const user = req.user;
+  if(user.role === 'ADMIN'){
+    next()
+  }
+  else{
+    next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHRIZED));
+  }
+};
+
+controllers/products
+export const createProduct = async (req:Request,res: Response,next:NextFunction)=>{
+    const product = await prismaClient.product.create({data: {
+        ...req.body,
+        tags: req.body.tags.join(',')
+    }})
+    res.json(product)
+}
+
+routes/product
+const productRoutes = Router();
+productRoutes.post('/',[authMiddleware,adminMiddleware],errorHandler(createProduct))
+
+routes/index
+rootRouter.use('/product',productRoutes);

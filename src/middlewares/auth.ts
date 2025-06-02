@@ -9,7 +9,7 @@ const authMiddleware:any = async (req: Request, res: Response, next: NextFunctio
   const token = req.headers.authorization;
 
   if (!token) {
-    return next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHROIZED));
+    return next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHRIZED));
   }
 
   try {
@@ -17,13 +17,13 @@ const authMiddleware:any = async (req: Request, res: Response, next: NextFunctio
     const user = await prismaClient.user.findFirst({ where: { id: payload.userId } });
 
     if (!user) {
-      return next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHROIZED));
+      return next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHRIZED));
     }
 
     req.user = user as any;
     next();
   } catch (error) {
-    next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHROIZED));
+    next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHRIZED));
   }
 };
 
