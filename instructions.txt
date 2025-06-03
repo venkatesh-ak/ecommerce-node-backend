@@ -40,6 +40,22 @@
 15. auth middleware and me api
     -  Node.js Authentication Middleware: Decoding JWT Tokens with Prisma ORM | Secure User Authentication
 
+
+15. unauthorized
+    -  Node.js Authentication Middleware: Decoding JWT Tokens with Prisma ORM | Secure User Authentication
+
+16. user role
+    -  Adding different role to Users | Node.Js and Prisma ORM
+
+17. adminMiddleware
+    -  Node.js Admin Middleware: Role-Based Access Control with Prisma ORM | Mastering Authorization
+
+18. product routes  
+    -  Finishing all product routes in E-Commerce App | NodeJs and Prisma ORM
+
+19. zod validation 
+    -  Handling ZOD Validation Errors in ExpressJs | NodeJs and Prisma ORM
+
 ================================================(MAY 10)
 2. project setup :
 
@@ -425,7 +441,7 @@ model Product {
   id Int @id @default(autoincrement())
   name String
   description String @db.Text
-  price Decimal
+  price Decimal @db.Decimal(10, 2)
   tags String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -461,3 +477,75 @@ productRoutes.post('/',[authMiddleware,adminMiddleware],errorHandler(createProdu
 
 routes/index
 rootRouter.use('/product',productRoutes);
+================================================(June 03)
+18. Finishing all product routes in E-Commerce App | NodeJs and Prisma ORM
+
+export const updateProduct = async (req:Request,res: Response,next:NextFunction)=>{
+    try {
+        let product = req.body;
+        if(product.tags){
+            product.tags = product.tags.join(',')
+        }
+        const updateProduct = await prismaClient.product.update({
+            where:{
+                id: +req.params.id
+            },
+            data: product 
+        })
+        res.json(updateProduct)
+    } catch (error) {
+        throw new NotFoundException('product not found', ErrorCode.PRODUCT_NOT_FOUND)
+    }
+}
+export const deleteProduct = async (req:Request,res: Response,next:NextFunction)=>{
+}
+export const listProduct = async (req:Request,res: Response,next:NextFunction)=>{
+    const count = await prismaClient.product.count();
+    const products = await prismaClient.product.findMany({
+        skip: Number(req.query.skip) || 0,
+        take: 5
+    });
+    res.json({
+        count, data:products
+    })
+}
+export const getProductById = async (req:Request,res: Response,next:NextFunction)=>{
+    try {
+        const product = await prismaClient.product.findFirstOrThrow({
+            where: {
+                id:+req.params.id
+            }
+        })
+        res.json(product)
+    } catch (error) {
+        throw new NotFoundException('product not found', ErrorCode.PRODUCT_NOT_FOUND)
+    }
+}
+
+routes/product.ts
+productRoutes.post('/',[authMiddleware,adminMiddleware],errorHandler(createProduct))
+productRoutes.get('/:id',[authMiddleware,adminMiddleware],errorHandler(getProductById))
+productRoutes.put('/:id',[authMiddleware,adminMiddleware],errorHandler(updateProduct))
+productRoutes.delete('/:id',[authMiddleware,adminMiddleware],errorHandler(deleteProduct))
+productRoutes.get('/',[authMiddleware,adminMiddleware],errorHandler(listProduct))
+
+
+================================================(June 03)
+19. Handling ZOD Validation Errors in ExpressJs | NodeJs and Prisma ORM
+
+src/errorHandler
+catch (error) {
+            let exception: HttpException
+            if(error instanceof HttpException){
+                exception = error
+            }
+            else{
+                if(error instanceof ZodError){
+                    exception = new UnprocessableEntity('Unprocessable entity.',ErrorCode.UNPROCESSABLE_ENTITY,error)
+                }
+                else{
+                    exception = new InternalException('something went wrong!',error, ErrorCode.INTERNAL_EXCEPTION)
+                }
+            }
+            next(exception)
+        }

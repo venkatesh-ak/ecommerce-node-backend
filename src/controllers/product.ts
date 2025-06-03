@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { prismaClient } from "..";
+import { NotFoundException } from "../exceptions/not-found";
+import { ErrorCode } from "../exceptions/root";
 
 export const createProduct = async (req:Request,res: Response,next:NextFunction)=>{
     const product = await prismaClient.product.create({data: {
@@ -7,4 +9,78 @@ export const createProduct = async (req:Request,res: Response,next:NextFunction)
         tags: req.body.tags.join(',')
     }})
     res.json(product)
+}
+
+
+// for testing add array of object product 
+// export const createAllProducts = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     const products = req.body;
+
+//     if (!Array.isArray(products)) {
+//       return res.status(400).json({ message: 'Input must be an array of products.' });
+//     }
+
+//     const formattedData = products.map(product => ({
+//       ...product,
+//       tags: Array.isArray(product.tags) ? product.tags.join(',') : '',
+//     }));
+
+//     const createdProducts = await prismaClient.product.createMany({
+//       data: formattedData,
+//       skipDuplicates: true, // Optional: skip if a unique constraint is violated
+//     });
+
+//     res.status(201).json({
+//       message: 'Products created successfully',
+//       count: createdProducts.count,
+//     });
+//   } catch (err) {
+//     next(err); // Pass error to error middleware
+//   }
+// };
+
+
+export const updateProduct = async (req:Request,res: Response,next:NextFunction)=>{
+    try {
+        let product = req.body;
+        if(product.tags){
+            product.tags = product.tags.join(',')
+        }
+        const updateProduct = await prismaClient.product.update({
+            where:{
+                id: +req.params.id
+            },
+            data: product 
+        })
+        res.json(updateProduct)
+    } catch (error) {
+        throw new NotFoundException('product not found', ErrorCode.PRODUCT_NOT_FOUND)
+    }
+}
+
+export const deleteProduct = async (req:Request,res: Response,next:NextFunction)=>{
+
+}
+export const listProduct = async (req:Request,res: Response,next:NextFunction)=>{
+    const count = await prismaClient.product.count();
+    const products = await prismaClient.product.findMany({
+        skip: Number(req.query.skip) || 0,
+        take: 5
+    });
+    res.json({
+        count, data:products
+    })
+}
+export const getProductById = async (req:Request,res: Response,next:NextFunction)=>{
+    try {
+        const product = await prismaClient.product.findFirstOrThrow({
+            where: {
+                id:+req.params.id
+            }
+        })
+        res.json(product)
+    } catch (error) {
+        throw new NotFoundException('product not found', ErrorCode.PRODUCT_NOT_FOUND)
+    }
 }

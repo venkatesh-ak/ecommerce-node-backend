@@ -12,7 +12,6 @@ import { UnprocessableEntity } from "../exceptions/validation";
 
 
 export const signup = async (req:Request,res: Response, next: NextFunction)=>{
-    try {
         SignUpSchema.parse(req.body)
         const {name,email,password} = req.body;
         let user = await prismaClient.user.findFirst({where : {email} });
@@ -27,9 +26,6 @@ export const signup = async (req:Request,res: Response, next: NextFunction)=>{
             }
         })
         res.json(user);
-    } catch (error:any) {
-        next(new UnprocessableEntity(error?.issues, 'Unprocessable entity', ErrorCode.UNPROCESSABLE_ENTITY))
-    }
 }
 
 export const login = async (req:Request,res: Response,next:NextFunction)=>{
