@@ -40,7 +40,6 @@
 15. auth middleware and me api
     -  Node.js Authentication Middleware: Decoding JWT Tokens with Prisma ORM | Secure User Authentication
 
-
 15. unauthorized
     -  Node.js Authentication Middleware: Decoding JWT Tokens with Prisma ORM | Secure User Authentication
 
@@ -55,6 +54,18 @@
 
 19. zod validation 
     -  Handling ZOD Validation Errors in ExpressJs | NodeJs and Prisma ORM
+
+20. address model
+    -   Adding Address table to E-Commerce App | NodeJs and Prisma ORM
+
+21. address controllers
+    -   Managing user addresses in E-Commerce | NodeJS and Prisma ORM
+
+22. address with auth
+    -   Using auth token for user and finishing address routes | NodeJS and Prisma ORM
+
+23. default address
+    -   Updating users and using default addresses | NodeJS and Prisma ORM
 
 ================================================(MAY 10)
 2. project setup :
@@ -549,3 +560,135 @@ catch (error) {
             }
             next(exception)
         }
+
+
+================================================(June 04)
+20. Adding Address table to E-Commerce App | NodeJs and Prisma ORM
+
+schema.prisma
+model Address {
+  id Int @id @default(autoincrement())
+  lineOne String
+  lineTwo String?
+  city String
+  country String
+  pincode String
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+(add 'Addresses Address[]' in user model)
+
+
+================================================(June 04)
+21.  Managing user addresses in E-Commerce | NodeJS and Prisma ORM
+
+controllers/address
+export const addAddress = async(req:Request, res: Response) =>{
+    AddressSchema.parse(req.body)
+    const address = await prismaClient.address.create({
+        data: {
+            ...req.body, 
+            userId: req.user.id
+        }
+    })
+    res.json(address)
+}
+
+routes/users
+const userRoutes = Router();
+userRoutes.post('/address', [authMiddleware], errorHandler(addAddress))
+userRoutes.delete('/address/:id', [authMiddleware], errorHandler(deleteAddress))
+userRoutes.get('/address', [authMiddleware], errorHandler(listAddress))
+
+schema/users.ts
+export const AddressSchema = z.object({
+    lineOne: z.string(),
+    lineTwo: z.string().nullable(),
+    pincode: z.string().length(6),
+    country: z.string(),
+    city: z.string(),
+})
+================================================(June 04)
+22. Using auth token for user and finishing address routes | NodeJS and Prisma ORM
+
+controllers/auth.ts
+export const deleteAddress = async(req:Request, res: Response) =>{
+    try {
+        await prismaClient.address.delete({
+            where : {
+                id: +req.params.id
+            }
+        }) 
+        res.json({success:true})
+    } catch (error) {
+        throw new NotFoundException('Address not found',ErrorCode.ADDRESS_NOT_FOUND)
+    }
+}
+export const listAddress = async(req:Request, res: Response) =>{
+    const addresses = await prismaClient.address.findMany({
+        where: {
+            userId: req.user.id
+        }
+    })
+    res.json(addresses) 
+}
+
+================================================(June 04)
+23. Updating users and using default addresses | NodeJS and Prisma ORM
+
+prisma/schema.prisma
+(
+defaultShippingAddress Int?
+defaultBillingAddress Int?
+) add this in user model
+
+schema/users.ts
+export const UpdateUserSchema =z.object({
+    name: z.string().optional(),
+    defaultShippingAddress: z.number().nullable(),
+    defaultBillingAddress: z.number().nullable()
+})
+
+export const updateUser = async(req:Request, res: Response) =>{
+    const validatedData = req.body
+    let shippingAddress: Address;
+    let billingAddress: Address;
+    if(validatedData.defaultShippingAddress){
+        try {
+            shippingAddress = await prismaClient.address.findFirstOrThrow({
+                where: {
+                    id: validatedData.defaultShippingAddress
+                }
+            })
+        } catch (error) {
+            throw new NotFoundException('Address not found.',ErrorCode.ADDRESS_NOT_FOUND)
+        }
+        if(shippingAddress.userId != req.user.id){
+            throw new BadRequestsException('Address does not belong to user.',ErrorCode.ADDRESS_DOES_NOT_BELONG)
+        }
+    }
+    if(validatedData.defaultBillingAddress){
+        try {
+            billingAddress = await prismaClient.address.findFirstOrThrow({
+                where: {
+                    id: validatedData.defaultBillingAddress
+                }
+            })
+        } catch (error) {
+            throw new NotFoundException('Address not found.',ErrorCode.ADDRESS_NOT_FOUND)
+        }
+        if(billingAddress.userId != req.user.id){
+            throw new BadRequestsException('Address does not belong to user.',ErrorCode.ADDRESS_DOES_NOT_BELONG)
+        }
+    }
+    
+    const updatedUser = await prismaClient.user.update({
+        where: {
+            id: +req.user.id
+        },
+        data: validatedData
+    })
+    res.json(updatedUser)
+}
