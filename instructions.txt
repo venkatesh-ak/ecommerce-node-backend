@@ -67,6 +67,14 @@
 23. default address
     -   Updating users and using default addresses | NodeJS and Prisma ORM
 
+24. Cart model
+    -   Creating Cart model | NodeJS and Prisma ORM
+
+25. Cart - Add, Delete
+    -   Adding and Deleting items from Cart | NodeJS and Prisma ORM
+
+26. Cart - Modify, Fetch
+    -   Modifying and fetching user's cart | NodeJS and Prisma ORM
 ================================================(MAY 10)
 2. project setup :
 
@@ -692,3 +700,31 @@ export const updateUser = async(req:Request, res: Response) =>{
     })
     res.json(updatedUser)
 }
+
+================================================(June 04)
+24. Creating Cart model | NodeJS and Prisma ORM
+
+prisma/schema.prisma
+model CartItem {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  productId Int
+  product Product @relation(fields: [productId], references: [id])
+  quantity Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("cart_item")
+}
+
+(cartItem CartItem[]) add this in product, user model
+
+
+================================================(June 04)
+25. Cart - Add, Delete
+    -   Adding and Deleting items from Cart | NodeJS and Prisma ORM
+
+================================================(June 04)
+26. Cart - Modify, Fetch
+    -   Modifying and fetching user's cart | NodeJS and Prisma ORM

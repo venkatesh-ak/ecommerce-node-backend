@@ -29,6 +29,7 @@ model User{
   updatedAt DateTime @updatedAt
   defaultShippingAddress Int?
   defaultBillingAddress Int?
+  cartItem CartItem[]
 
   Addresses Address[]
 
@@ -56,8 +57,21 @@ model Product {
   description String @db.Text
   price Decimal @db.Decimal(10, 2)
   tags String
+  cartItem CartItem[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("products")
+}
+model CartItem {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  productId Int
+  product Product @relation(fields: [productId], references: [id])
+  quantity Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("cart_item")
 }
