@@ -31,7 +31,7 @@ A robust backend template built with **Node.js**, **Express.js**, **Prisma ORM**
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/venkatesh-ak/ecommerce-node-backend.git
 cd your-repo-name
 
 # 2. Install dependencies
