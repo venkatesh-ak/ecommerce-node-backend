@@ -10,8 +10,8 @@ userRoutes.post('/address', [authMiddleware], errorHandler(addAddress))
 userRoutes.delete('/address/:id', [authMiddleware], errorHandler(deleteAddress))
 userRoutes.get('/address', [authMiddleware], errorHandler(listAddress))
 userRoutes.put('/', [authMiddleware], errorHandler(updateUser))
-userRoutes.put('/:id/role', [authMiddleware], errorHandler(changeUserRole))
-userRoutes.get('/', [authMiddleware], errorHandler(listUser))
-userRoutes.get('/:id', [authMiddleware], errorHandler(getUserById))
+userRoutes.put('/:id/role', [authMiddleware, adminMiddleware], errorHandler(changeUserRole))
+userRoutes.get('/', [authMiddleware, adminMiddleware], errorHandler(listUser))
+userRoutes.get('/:id', [authMiddleware, adminMiddleware], errorHandler(getUserById))
 
 export default userRoutes

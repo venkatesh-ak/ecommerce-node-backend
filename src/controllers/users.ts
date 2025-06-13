@@ -99,8 +99,8 @@ export const getUserById = async(req:Request, res: Response) =>{
             include: {
                 addresses: true
             }
-        }
-    )
+        })
+        res.json(user)
     } catch (error) {
         throw new NotFoundException('user not found.', ErrorCode.USER_NOT_FOUND)
     }
@@ -114,8 +114,8 @@ export const changeUserRole = async(req:Request, res: Response) =>{
             data: {
                 role: req.body.role
             }
-        }
-    )
+        })
+        res.json(user)
     } catch (error) {
         throw new NotFoundException('user not found.', ErrorCode.USER_NOT_FOUND)
     }

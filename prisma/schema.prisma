@@ -39,7 +39,7 @@ model User{
   defaultBillingAddress Int?
 
   cartItem CartItem[]
-  Addresses Address[]
+  addresses Address[]
   Orders Order[]
 
   @@map("users")
