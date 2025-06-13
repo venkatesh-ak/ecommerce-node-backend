@@ -725,6 +725,284 @@ model CartItem {
 25. Cart - Add, Delete
     -   Adding and Deleting items from Cart | NodeJS and Prisma ORM
 
+controllers/cart
+export const addItemToCart= async(req: Request, res: Response)=>{
+    //check for existance of the product and in user's cart and alter the quantity as required
+    const validateData = CreateCartSchema.parse(req.body)
+    let product: Product
+    try {
+        product = await prismaClient.product.findFirstOrThrow({
+            where: {
+                id: validateData.productId
+            }
+        })
+    } catch (error) {
+        throw new NotFoundException('Product not found',ErrorCode.PRODUCT_NOT_FOUND)
+    }
+    //find user have cartItem with product id
+    let cartProductItem:CartItem
+    cartProductItem = await prismaClient.cartItem.findFirst({
+        where: {
+            userId: req.user.id,
+            productId: product.id,
+        }
+    })
+    let cart: CartItem
+    if(cartProductItem){
+        cart = await prismaClient.cartItem.update({
+            where: {
+                id: cartProductItem.id
+            },
+            data: {
+                quantity: validateData.quantity
+            }
+        })
+    }
+    else{
+        cart = await prismaClient.cartItem.create({
+            data: {
+                userId: req.user.id,
+                productId: product.id,
+                quantity: validateData.quantity
+            }
+        })
+    }
+    res.json(cart)
+}
+export const deleteItemFromCart= async(req: Request, res: Response)=>{
+    //check user is deleting its own cart item - done
+    await prismaClient.cartItem.delete({
+        where: {
+            id: +req.params.id
+        }
+    })
+    res.json({success:true})
+}
+
+
 ================================================(June 04)
 26. Cart - Modify, Fetch
     -   Modifying and fetching user's cart | NodeJS and Prisma ORM
+
+controllers/cart
+export const changeQuantity= async(req: Request, res: Response)=>{
+    const validateData = ChangeQuantitySchema.parse(req.body)
+
+    try {
+        const updatedCart = await prismaClient.cartItem.update({
+            where: {
+                id: +req.params.id,
+                userId: req.user.id
+            },
+            data: {
+                quantity: validateData.quantity
+            }
+        })
+        res.json(updatedCart)
+    } catch (error) {
+        throw new NotFoundException('Cart not found',ErrorCode.PRODUCT_NOT_FOUND)
+    }
+}
+export const getCart= async(req: Request, res: Response)=>{
+    try {
+        const cartItems = await prismaClient.cartItem.findMany({
+            where: {
+                userId: req.user.id
+            },
+            include: {
+                product: true
+            }
+        })
+        res.json(cartItems)
+    } catch (error) {
+        throw new NotFoundException('Cart not found',ErrorCode.PRODUCT_NOT_FOUND)
+    }
+}
+================================================(June 06)
+27. Creating Orders table | NodeJS and Prisma ORM
+
+schema.prisma
+model Order {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  netAmount Decimal
+  address String  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products OrderProducts[]
+  events OrderEvent[]
+  @@map("order")
+}
+model OrderProducts{
+  id Int @id @default(autoincrement())
+  orderId Int
+  order Order @relation(fields:[orderId], references:[id])
+  productId Int
+  product Product @relation(fields: [productId], references: [id])
+  quantity Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("order_products")
+}
+model OrderEvent {
+  id Int @id @default(autoincrement())
+  orderId Int
+  orders Order @relation(fields:[orderId], references:[id])
+  orderEventStatus OrderEventStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("order_events")
+}
+
+controllers/orders
+export const createOrder= async(req: Request, res: Response)=>{
+    try {
+        return await prismaClient.$transaction(async (tx:any) => {
+            const cartItems = await tx.cartItem.findMany({
+                where: {
+                    userId: req.user.id
+                },
+                include: {
+                    product: true
+                }
+            })
+            console.log(cartItems)
+    
+            if(cartItems.length ==0){
+                return res.json({message:'cart is empty.'})
+            }
+    
+            const price = cartItems.reduce((prev,current)=>{
+                return prev + (current.quantity * +current.product.price)
+            },0)
+    
+            console.log('total:',price)
+    
+            const address = await tx.address.findFirst({
+                where: {
+                    id: req.user.defaultShippingAddress
+                }
+            })
+            
+            const order = await tx.order.create({
+                data: {
+                    userId:req.user.id,
+                    netAmount: price,
+                    address: address.formattedAddress,
+                    products: {
+                        create: cartItems.map(cart=>{
+                            return {
+                                productId : cart.productId,
+                                quantity: cart.quantity
+                            }
+                        })
+                    }
+                }
+            })
+    
+            const orderEvent = await tx.orderEvent.create({
+                data: {
+                    orderId: order.id
+                }
+            })
+    
+            await tx.cartItem.deleteMany({
+                where: {
+                    userId: req.user.id
+                }
+            })
+    
+            return res.json(order)
+        })
+    } catch (error) {
+        console.log(error)
+        throw error
+    }
+}
+
+routes/orders
+orderRoutes.post('/',[authMiddleware],errorHandler(createOrder))
+orderRoutes.get('/',[authMiddleware],errorHandler(listOrders))
+orderRoutes.put('/:id/cancel',[authMiddleware],errorHandler(cancelOrder))
+orderRoutes.get('/:id',[authMiddleware],errorHandler(getOrderById))
+
+index.ts
+export const prismaClient:any = new PrismaClient({
+    log:['query']
+}).$extends({
+    result: {
+        address: {
+            formattedAddress :{
+                needs: {
+                    lineOne: true,
+                    lineTwo: true,
+                    city: true,
+                    country: true,
+                    pincode: true
+                },
+                compute: ((addr)=>{
+                    return `${addr.lineOne}, ${addr.lineTwo}, ${addr.city}, ${addr.country}-${addr.pincode}`
+                })
+            }
+        }
+    }
+})
+
+================================================(June 12)
+28. placing order from users cart
+
+================================================(June 12)
+29. Storing current order status | NodeJS and Prisma ORM
+
+add "status OrderEventStatus @default(PENDING)" in order model
+
+================================================(June 12)
+
+30. Finishing all order routes | NodeJS and Prisma ORM
+export const listOrders= async(req: Request, res: Response)=>{
+    const orders = await prismaClient.order.findMany({
+        where:{
+            userId: req.user.id
+        }
+    })
+    res.json(orders)
+}
+export const cancelOrder= async(req: Request, res: Response)=>{
+
+        return await prismaClient.$transaction(async (tx:any)=>{
+            const order = await tx.order.update({
+                where:{
+                    id: +req.params.id
+                },
+                data: {
+                    status: 'CANCELLED'
+                }
+            });
+    
+            await tx.orderEvent.create({
+                data: {
+                    orderId: order.id,
+                    status: 'CANCELLED'
+                }
+            })
+    
+            return res.json(order)
+        })
+}
+export const getOrderById= async(req: Request, res: Response)=>{
+    try {
+        const order = await prismaClient.order.findFirstOrThrow({
+            where: {
+                id: +req.params.id
+            },
+            include:{
+                products:true,
+                events:true
+            }
+        });
+        res.json(order)
+    } catch (error) {
+        throw new NotFoundException('order not found', ErrorCode.ORDER_NOT_FOUND)
+    }
+}
