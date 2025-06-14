@@ -952,6 +952,71 @@ export const prismaClient:any = new PrismaClient({
 ================================================(June 12)
 28. placing order from users cart
 
+export const createOrder= async(req: Request, res: Response)=>{
+    try {
+        return await prismaClient.$transaction(async (tx:any) => {
+            const cartItems = await tx.cartItem.findMany({
+                where: {
+                    userId: req.user.id
+                },
+                include: {
+                    product: true
+                }
+            })
+            console.log(cartItems)
+    
+            if(cartItems.length ==0){
+                return res.json({message:'cart is empty.'})
+            }
+    
+            const price = cartItems.reduce((prev,current)=>{
+                return prev + (current.quantity * +current.product.price)
+            },0)
+    
+            console.log('total:',price)
+    
+            const address = await tx.address.findFirst({
+                where: {
+                    id: req.user.defaultShippingAddress
+                }
+            })
+            
+            const order = await tx.order.create({
+                data: {
+                    userId:req.user.id,
+                    netAmount: price,
+                    address: address.formattedAddress,
+                    products: {
+                        create: cartItems.map(cart=>{
+                            return {
+                                productId : cart.productId,
+                                quantity: cart.quantity
+                            }
+                        })
+                    }
+                }
+            })
+    
+            const orderEvent = await tx.orderEvent.create({
+                data: {
+                    orderId: order.id
+                }
+            })
+    
+            await tx.cartItem.deleteMany({
+                where: {
+                    userId: req.user.id
+                }
+            })
+    
+            return res.json({order,events: orderEvent})
+        })
+    } catch (error) {
+        console.log(error)
+        throw error
+    }
+}
+
 ================================================(June 12)
 29. Storing current order status | NodeJS and Prisma ORM
 
@@ -1109,4 +1174,33 @@ export const listUserOrders = async(req:Request, res: Response)=> {
         take: 5
     })
     res.json(orders)
+}
+
+================================================(June 14)
+33. Effortless Text Search with Node.js and Prisma ORM: A Step-by-Step Guide | NodeJS and Prisma
+
+export const searchProduct = async (req: Request, res: Response) => {
+        console.log('query',req.query.q)
+        const products = await prismaClient.product.findMany({
+            where: {
+                OR: [
+                    {
+                        name: {
+                            contains: req.query.q.toString(),
+                        },
+                    },
+                    {
+                        description: {
+                            contains: req.query.q.toString(),
+                        },
+                    },
+                    {
+                        tags: {
+                            contains: req.query.q.toString(), // for tags as String[]
+                        },
+                    },
+                ],
+            }
+        });
+        res.json(products);
 }

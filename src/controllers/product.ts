@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { prismaClient } from "..";
 import { NotFoundException } from "../exceptions/not-found";
 import { ErrorCode } from "../exceptions/root";
+import { InternalException } from "../exceptions/internal-exception";
 
 export const createProduct = async (req:Request,res: Response,next:NextFunction)=>{
     const product = await prismaClient.product.create({data: {
@@ -83,4 +84,30 @@ export const getProductById = async (req:Request,res: Response,next:NextFunction
     } catch (error) {
         throw new NotFoundException('product not found', ErrorCode.PRODUCT_NOT_FOUND)
     }
+}
+
+export const searchProduct = async (req: Request, res: Response) => {
+        console.log('query',req.query.q)
+        const products = await prismaClient.product.findMany({
+            where: {
+                OR: [
+                    {
+                        name: {
+                            contains: req.query.q.toString(),
+                        },
+                    },
+                    {
+                        description: {
+                            contains: req.query.q.toString(),
+                        },
+                    },
+                    {
+                        tags: {
+                            contains: req.query.q.toString(), // for tags as String[]
+                        },
+                    },
+                ],
+            }
+        });
+        res.json(products);
 }
