@@ -9,9 +9,9 @@ const productRoutes = Router();
 // productRoutes.post('/all',[authMiddleware,adminMiddleware],errorHandler(createAllProducts))
 productRoutes.post('/',[authMiddleware,adminMiddleware],errorHandler(createProduct))
 productRoutes.get('/search',[authMiddleware],errorHandler(searchProduct))
-productRoutes.get('/:id',[authMiddleware,adminMiddleware],errorHandler(getProductById))
+productRoutes.get('/:id',[authMiddleware],errorHandler(getProductById))
 productRoutes.put('/:id',[authMiddleware,adminMiddleware],errorHandler(updateProduct))
 productRoutes.delete('/:id',[authMiddleware,adminMiddleware],errorHandler(deleteProduct))
-productRoutes.get('/',[authMiddleware,adminMiddleware],errorHandler(listProduct))
+productRoutes.post('/list',[authMiddleware],errorHandler(listProduct))
 
 export default productRoutes

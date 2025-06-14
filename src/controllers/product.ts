@@ -3,6 +3,7 @@ import { prismaClient } from "..";
 import { NotFoundException } from "../exceptions/not-found";
 import { ErrorCode } from "../exceptions/root";
 import { InternalException } from "../exceptions/internal-exception";
+import { ListProductSchema } from "../schema/product";
 
 export const createProduct = async (req:Request,res: Response,next:NextFunction)=>{
     const product = await prismaClient.product.create({data: {
@@ -63,21 +64,53 @@ export const updateProduct = async (req:Request,res: Response,next:NextFunction)
 export const deleteProduct = async (req:Request,res: Response,next:NextFunction)=>{
 
 }
-export const listProduct = async (req:Request,res: Response,next:NextFunction)=>{
-    const count = await prismaClient.product.count();
-    const products = await prismaClient.product.findMany({
-        skip: Number(req.query.skip) || 0,
-        take: 5
-    });
+export const listProduct = async (req:Request,res: Response)=>{
+    // ListProductSchema.parse(req.body);
+    const { page, take, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.body;
+    const skip = (page - 1) * take
+    const [count, products] = await Promise.all([
+      prismaClient.product.count({
+        where: search
+          ? {
+              OR: [
+                { name: { contains: search } },
+                { tags: { contains: search } }
+              ]
+            }
+          : undefined
+      }),
+      prismaClient.product.findMany({
+        skip,
+        take,
+        where: search
+          ? {
+              OR: [
+                { name: { contains: search } },
+                { tags: { contains: search } }
+              ]
+            }
+          : undefined,
+        orderBy: { [sortBy]: sortOrder },
+        // include: { images: true }
+      })
+    ]);
+
     res.json({
-        count, data:products
-    })
+      page,
+      perPage: take,
+      totalItems: count,
+      totalPages: Math.ceil(count / take),
+      data: products
+    });
 }
 export const getProductById = async (req:Request,res: Response,next:NextFunction)=>{
     try {
         const product = await prismaClient.product.findFirstOrThrow({
             where: {
                 id:+req.params.id
+            },
+            include: {
+                images: true
             }
         })
         res.json(product)

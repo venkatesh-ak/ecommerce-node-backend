@@ -60,22 +60,52 @@ model Address {
   @@map("addresses")
 }
 
+// model Product {
+//   id Int @id @default(autoincrement())
+//   name String
+//   description String @db.Text
+//   price Decimal @db.Decimal(10, 2)
+//   tags String
+//   cartItem CartItem[]
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   orders OrderProducts[]
+
+//   @@fulltext([name, description, tags])
+
+//   @@map("products")
+// }
+
 model Product {
-  id Int @id @default(autoincrement())
-  name String
-  description String @db.Text
-  price Decimal @db.Decimal(10, 2)
-  tags String
-  cartItem CartItem[]
+  id          Int              @id @default(autoincrement())
+  name        String
+  description String           @db.Text
+  price       Decimal          @db.Decimal(10, 2)
+  tags        String
+  thumbnail   String           // Thumbnail image URL
+  cartItem    CartItem[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  orders      OrderProducts[]
+  images      ProductImage[]   // 1:N relation
+
+  @@fulltext([name, description, tags])
+  @@map("products")
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders OrderProducts[]
-
-  @@fulltext([name, description, tags])
-
-  @@map("products")
+  @@map("product_images")
 }
+
 model CartItem {
   id Int @id @default(autoincrement())
   userId Int
