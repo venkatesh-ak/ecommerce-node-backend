@@ -6,7 +6,13 @@ import * as jwt from 'jsonwebtoken';
 import { JWT_SECRET } from "../secrets";
 
 const authMiddleware:any = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization;
+  // const token = req.headers.authorization;
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.split(' ')[1]
+    : authHeader;
+
+    console.log(token)
 
   if (!token) {
     return next(new UnauthorizedException('Unauthorized', ErrorCode.UNAUTHRIZED));

@@ -7,11 +7,12 @@ import adminMiddleware from "../middlewares/admin";
 const productRoutes = Router();
 
 // productRoutes.post('/all',[authMiddleware,adminMiddleware],errorHandler(createAllProducts))
-productRoutes.post('/',[authMiddleware,adminMiddleware],errorHandler(createProduct))
-productRoutes.get('/search',[authMiddleware],errorHandler(searchProduct))
-productRoutes.get('/:id',[authMiddleware],errorHandler(getProductById))
+productRoutes.post('/',[authMiddleware],errorHandler(createProduct))
+productRoutes.get('/search',errorHandler(searchProduct))
+productRoutes.get('/:id',errorHandler(getProductById))
 productRoutes.put('/:id',[authMiddleware,adminMiddleware],errorHandler(updateProduct))
 productRoutes.delete('/:id',[authMiddleware,adminMiddleware],errorHandler(deleteProduct))
-productRoutes.post('/list',[authMiddleware],errorHandler(listProduct))
+// productRoutes.post('/list',[authMiddleware],errorHandler(listProduct))
+productRoutes.post('/list',[],errorHandler(listProduct))
 
 export default productRoutes

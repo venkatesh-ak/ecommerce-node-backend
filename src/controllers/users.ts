@@ -5,18 +5,30 @@ import { ErrorCode } from "../exceptions/root";
 import { prismaClient } from "..";
 import { Request, Response } from "express";
 import { BadRequestsException } from "../exceptions/bad-requests";
+import { ZodError } from "zod";
 
 export const addAddress = async(req:Request, res: Response) =>{
-    AddressSchema.parse(req.body)
-    const address = await prismaClient.address.create({
-        data: {
-            ...req.body, 
-            userId: req.user.id
-        }
-    })
-    res.json(address)
-}
+    try {
+        // Validate body using Zod
+        const validatedData = AddressSchema.parse(req.body);
 
+        const address = await prismaClient.address.create({
+            data: {
+                ...validatedData,
+                userId: req.user.id
+            }
+        });
+
+        res.json(address);
+    } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: error.flatten() });
+        }
+
+        console.error('Error adding address:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
 
 export const deleteAddress = async(req:Request, res: Response) =>{
     try {

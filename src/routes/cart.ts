@@ -9,7 +9,7 @@ const cartRoutes = Router();
 // productRoutes.post('/all',[authMiddleware,adminMiddleware],errorHandler(createAllProducts))
 cartRoutes.post('/',[authMiddleware],errorHandler(addItemToCart))
 cartRoutes.get('/',[authMiddleware],errorHandler(getCart))
-cartRoutes.delete('/',[authMiddleware],errorHandler(deleteItemFromCart))
+cartRoutes.delete('/:id',[authMiddleware],errorHandler(deleteItemFromCart))
 cartRoutes.put('/:id',[authMiddleware],errorHandler(changeQuantity))
 
 export default cartRoutes

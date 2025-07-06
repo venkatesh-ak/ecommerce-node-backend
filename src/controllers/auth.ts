@@ -40,9 +40,13 @@ export const login = async (req:Request,res: Response,next:NextFunction)=>{
     }
     const token = jwt.sign({
         userId : user.id
-    },JWT_SECRET)
+    },JWT_SECRET);
+    // },JWT_SECRET,{ expiresIn: '3d' });
 
-    res.json({user, token});
+    const { password: _, ...sanitizedUser } = user;
+
+
+    res.json({user:sanitizedUser, token});
 }
 
 // => me -> return user from token

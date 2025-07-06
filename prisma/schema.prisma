@@ -27,38 +27,65 @@ enum OrderEventStatus {
   CANCELLED
 }
 
-model User{
-  id Int @id @default(autoincrement())
-  name String
-  email String @unique
-  password String
-  role Role @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  defaultShippingAddress Int?
-  defaultBillingAddress Int?
+model User {
+  id                        Int            @id @default(autoincrement())
+  name                      String
+  email                     String         @unique
+  password                  String
+  role                      Role           @default(USER)
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
 
-  cartItem CartItem[]
-  addresses Address[]
-  Orders Order[]
+  defaultShippingAddressId  Int?
+  defaultShippingAddress    Address?       @relation("UserDefaultShipping", fields: [defaultShippingAddressId], references: [id])
+
+  refreshTokens             RefreshToken[]
+  cartItem                  CartItem[]
+  addresses                 Address[]
+  Orders                    Order[]
 
   @@map("users")
 }
 
+// model Address {
+//   id        Int      @id @default(autoincrement())
+//   lineOne   String
+//   lineTwo   String?
+//   city      String
+//   country   String
+//   pincode   String
+//   userId    Int
+//   user      User     @relation(fields: [userId], references: [id])
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@map("addresses")
+// }
 model Address {
-  id Int @id @default(autoincrement())
-  lineOne String
-  lineTwo String?
-  city String
-  country String
-  pincode String
-  userId Int
-  user User @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  name            String
+  phone           String
+  alternatePhone  String?
+  pincode         String
+  locality        String
+  address         String
+  landmark        String?
+  city            String
+  state           String
+  country         String  @default("India")
+  addressType     String
+
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+
+  shippingUsers   User[]   @relation("UserDefaultShipping")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@map("addresses")
 }
+
 
 // model Product {
 //   id Int @id @default(autoincrement())
@@ -76,23 +103,84 @@ model Address {
 
 //   @@map("products")
 // }
+model Tag {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[] @relation("ProductTags")
+}
 
 model Product {
-  id          Int              @id @default(autoincrement())
-  name        String
-  description String           @db.Text
-  price       Decimal          @db.Decimal(10, 2)
-  tags        String
-  thumbnail   String           // Thumbnail image URL
-  cartItem    CartItem[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  description          String   @db.Text
+  price                Decimal  @db.Decimal(10, 2)
+  discountPercentage   Decimal? @db.Decimal(5, 2)
+  rating               Decimal  @db.Decimal(2, 1)
+  stock                Int
+  sku                  String?  @unique
+  brand                String?
+  weight               Float?
+  warrantyInformation  String?
+  shippingInformation  String?
+  availabilityStatus   String?
+  returnPolicy         String?
+  minimumOrderQuantity Int?
 
-  orders      OrderProducts[]
-  images      ProductImage[]   // 1:N relation
+  thumbnail  String
+  tags       Tag[]             @relation("ProductTags")
+  images     ProductImage[] // 1:N relation
+  reviews    Review[] // 1:N relation
+  dimensions ProductDimension?
 
-  @@fulltext([name, description, tags])
+  cartItem CartItem[]
+  orders   OrderProducts[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  meta ProductMeta?
+
   @@map("products")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model ProductMeta {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime
+  updatedAt DateTime
+  barcode   String?
+  qrCode    String?
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int      @unique
+}
+
+model ProductDimension {
+  id        Int     @id @default(autoincrement())
+  width     Float
+  height    Float
+  depth     Float
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int     @unique
+}
+
+model Review {
+  id            Int      @id @default(autoincrement())
+  rating        Int
+  comment       String
+  date          DateTime @default(now())
+  reviewerName  String
+  reviewerEmail String
+  product       Product  @relation(fields: [productId], references: [id])
+  productId     Int
 }
 
 model ProductImage {
@@ -107,12 +195,12 @@ model ProductImage {
 }
 
 model CartItem {
-  id Int @id @default(autoincrement())
-  userId Int
-  user User @relation(fields: [userId], references: [id])
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
   productId Int
-  product Product @relation(fields: [productId], references: [id])
-  quantity Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -120,42 +208,41 @@ model CartItem {
 }
 
 model Order {
-  id Int @id @default(autoincrement())
-  userId Int
-  user User @relation(fields: [userId], references: [id])
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id])
   netAmount Decimal
-  address String  
-  status OrderEventStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  address   String
+  status    OrderEventStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   products OrderProducts[]
-  events OrderEvent[]
+  events   OrderEvent[]
 
   @@map("order")
 }
 
-model OrderProducts{
-  id Int @id @default(autoincrement())
-  orderId Int
-  order Order @relation(fields:[orderId], references:[id])
+model OrderProducts {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
   productId Int
-  product Product @relation(fields: [productId], references: [id])
-  quantity Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("order_products")
-
 }
 
 model OrderEvent {
-  id Int @id @default(autoincrement())
-  orderId Int
-  orders Order @relation(fields:[orderId], references:[id])
-  status OrderEventStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int              @id @default(autoincrement())
+  orderId   Int
+  orders    Order            @relation(fields: [orderId], references: [id])
+  status    OrderEventStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   @@map("order_events")
 }

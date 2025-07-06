@@ -3,15 +3,56 @@ import { prismaClient } from "..";
 import { NotFoundException } from "../exceptions/not-found";
 import { ErrorCode } from "../exceptions/root";
 import { InternalException } from "../exceptions/internal-exception";
-import { ListProductSchema } from "../schema/product";
+import { ListProductSchema, ProductSchema } from "../schema/product";
+import { BadRequestsException } from "../exceptions/bad-requests";
 
-export const createProduct = async (req:Request,res: Response,next:NextFunction)=>{
-    const product = await prismaClient.product.create({data: {
-        ...req.body,
-        tags: req.body.tags.join(',')
-    }})
-    res.json(product)
-}
+export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
+  const parsed = ProductSchema.parse(req.body);
+  const {
+    tags,
+    images,
+    dimensions,
+    meta,
+    reviews,
+    ...rest
+  } = parsed;
+
+  const product = await prismaClient.product.create({
+    data: {
+      ...rest,
+      tags: {
+        connectOrCreate: tags.map(tagName => ({
+          where: { name: tagName },
+          create: { name: tagName },
+        })),
+      },
+      images: {
+        create: images.map(url => ({ url })),
+      },
+      dimensions: dimensions
+        ? { create: dimensions }
+        : undefined,
+      meta: meta
+        ? {
+            create: {
+              ...meta,
+              createdAt: new Date(meta.createdAt),
+              updatedAt: new Date(meta.updatedAt),
+            },
+          }
+        : undefined,
+      reviews: reviews
+        ? {
+            create: reviews.map(r => ({
+              ...r,
+              date: new Date(r.date),
+            })),
+          }
+        : undefined,
+    },
+  });
+  res.json(product);
+};
 
 
 // for testing add array of object product 
@@ -64,60 +105,73 @@ export const updateProduct = async (req:Request,res: Response,next:NextFunction)
 export const deleteProduct = async (req:Request,res: Response,next:NextFunction)=>{
 
 }
-export const listProduct = async (req:Request,res: Response)=>{
-    // ListProductSchema.parse(req.body);
-    const { page, take, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.body;
-    const skip = (page - 1) * take
-    const [count, products] = await Promise.all([
-      prismaClient.product.count({
-        where: search
-          ? {
-              OR: [
-                { name: { contains: search } },
-                { tags: { contains: search } }
-              ]
-            }
-          : undefined
-      }),
-      prismaClient.product.findMany({
-        skip,
-        take,
-        where: search
-          ? {
-              OR: [
-                { name: { contains: search } },
-                { tags: { contains: search } }
-              ]
-            }
-          : undefined,
-        orderBy: { [sortBy]: sortOrder },
-        // include: { images: true }
-      })
-    ]);
+export const listProduct = async (req: Request, res: Response) => {
+  const { page = 1, take = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.body;
+  const skip = (page - 1) * take;
 
-    res.json({
-      page,
-      perPage: take,
-      totalItems: count,
-      totalPages: Math.ceil(count / take),
-      data: products
+  const whereClause = search
+    ? {
+        OR: [
+          { name: { contains: search} },
+          { tags: { some: { name: { contains: search} } } }
+        ]
+      }
+    : undefined;
+
+  const [count, products] = await Promise.all([
+    prismaClient.product.count({ where: whereClause }),
+    prismaClient.product.findMany({
+      skip,
+      take,
+      where: whereClause,
+      orderBy: { [sortBy]: sortOrder },
+      include: { tags: true }
+    })
+  ]);
+
+  // Convert tags from objects to string[]
+  const formattedProducts = await products.map((product) => ({
+    ...product,
+    tags: product.tags.map((tag) => tag.name)
+  }));
+
+  res.json({
+    page,
+    perPage: take,
+    totalItems: count,
+    totalPages: Math.ceil(count / take),
+    data: formattedProducts
+  });
+};
+
+export const getProductById = async (req: Request, res: Response, next: NextFunction) => {
+  const id = parseInt(req.params.id, 10);
+
+  if (isNaN(id)) {
+    return next(new BadRequestsException('Invalid product ID',ErrorCode.INVALID_PRODUCTID));
+  }
+
+  try {
+    const product = await prismaClient.product.findUnique({
+      where: { id },
+      include: {
+        images: true,
+        tags: true,
+        reviews: true,
+        dimensions: true,
+        meta: true,
+      },
     });
-}
-export const getProductById = async (req:Request,res: Response,next:NextFunction)=>{
-    try {
-        const product = await prismaClient.product.findFirstOrThrow({
-            where: {
-                id:+req.params.id
-            },
-            include: {
-                images: true
-            }
-        })
-        res.json(product)
-    } catch (error) {
-        throw new NotFoundException('product not found', ErrorCode.PRODUCT_NOT_FOUND)
+
+    if (!product) {
+      throw new NotFoundException('Product not found', ErrorCode.PRODUCT_NOT_FOUND);
     }
-}
+
+    res.json(product);
+  } catch (error) {
+    next(error); // passes error to your global error handler
+  }
+};
 
 export const searchProduct = async (req: Request, res: Response) => {
         console.log('query',req.query.q)
@@ -133,12 +187,7 @@ export const searchProduct = async (req: Request, res: Response) => {
                         description: {
                             contains: req.query.q.toString(),
                         },
-                    },
-                    {
-                        tags: {
-                            contains: req.query.q.toString(), // for tags as String[]
-                        },
-                    },
+                    }
                 ],
             }
         });

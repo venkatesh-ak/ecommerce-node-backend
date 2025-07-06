@@ -28,7 +28,7 @@ export const createOrder= async(req: Request, res: Response)=>{
     
             const address = await tx.address.findFirst({
                 where: {
-                    id: req.user.defaultShippingAddress
+                    id: req.user.defaultShippingAddressId
                 }
             })
             

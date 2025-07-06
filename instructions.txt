@@ -1204,3 +1204,22 @@ export const searchProduct = async (req: Request, res: Response) => {
         });
         res.json(products);
 }
+
+--------------------------------
+
+old schema
+
+model Address {
+  id        Int      @id @default(autoincrement())
+  lineOne   String
+  lineTwo   String?
+  city      String
+  country   String
+  pincode   String
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("addresses")
+}
