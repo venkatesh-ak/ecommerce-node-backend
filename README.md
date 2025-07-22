@@ -1,4 +1,4 @@
-# Node.js Prisma MySQL Starter
+# Mini E-commerceusing Node.js Prisma MySQL
 
 A robust backend template built with **Node.js**, **Express.js**, **Prisma ORM**, and **MySQL** — designed for scalable REST API development.
 
